@@ -1,0 +1,10 @@
+# 절대 올리면 안 되는 것
+.env
+*.bak
+*.log
+
+# 임시/캐시
+canvas/
+cron/
+node_modules/
+*.tmp
