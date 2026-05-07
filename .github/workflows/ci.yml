@@ -1,0 +1,44 @@
+name: OpenClaw CI
+
+on:
+  push:
+    branches: ["main", "dev"]
+    paths:
+      - "skills/**"
+      - "*.py"
+      - "requirements.txt"
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check skills syntax
+        run: python scripts/check_skills.py
+
+      - name: Dry run
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          DRY_RUN: "true"
+        run: python scripts/dry_run.py
+
+      - name: Count skills
+        if: always()
+        run: |
+          find skills/ -name "*.py" | wc -l
+          find skills/ -name "*.py" | sort
