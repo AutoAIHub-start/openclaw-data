@@ -26,36 +26,19 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Check skills syntax
-        run: |
-          find skills/ -name "*.py" | while read f; do
-            echo "Checking: $f"
-            python -c "
-import ast, sys
-with open('$f', 'r', encoding='utf-8') as fh:
-    src = fh.read()
-try:
-    ast.parse(src)
-    print('  OK: ' + '$f')
-except SyntaxError as e:
-    print('  ERROR: ' + str(e))
-    sys.exit(1)
-"
-          done
+        run: python scripts/check_skills.py
 
-      - name: Dry run main logic
+      - name: Dry run
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           DRY_RUN: "true"
-        run: |
-          python main.py --dry-run || python app.py --dry-run || echo "No standard entry point found, skipping"
+        run: python scripts/dry_run.py
 
       - name: Count skills
         if: always()
         run: |
-          total=$(find skills/ -name "*.py" | wc -l)
-          echo "Total skills: $total"
+          find skills/ -name "*.py" | wc -l
           find skills/ -name "*.py" | sort
