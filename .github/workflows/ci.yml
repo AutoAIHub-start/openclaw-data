@@ -1,4 +1,4 @@
-name: OpenClaw CI 自动体检
+name: OpenClaw CI
 
 on:
   push:
@@ -12,55 +12,50 @@ on:
 
 jobs:
   smoke-test:
-    name: 主逻辑冒烟测试
+    name: Smoke Test
     runs-on: ubuntu-latest
 
     steps:
-      - name: 拉取代码
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 设置 Python 3.10
+      - name: Setup Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
           cache: "pip"
 
-      - name: 安装依赖
+      - name: Install dependencies
         run: |
           pip install -r requirements.txt
 
-      - name: 检查所有 Skills 语法合法（import 不报错）
+      - name: Check skills syntax
         run: |
-          echo "=== 扫描 skills/ 目录下所有 .py 文件 ==="
           find skills/ -name "*.py" | while read f; do
-            echo "检查: $f"
+            echo "Checking: $f"
             python -c "
 import ast, sys
 with open('$f', 'r', encoding='utf-8') as fh:
     src = fh.read()
 try:
     ast.parse(src)
-    print('  ✅ 语法OK')
+    print('  OK: ' + '$f')
 except SyntaxError as e:
-    print(f'  ❌ 语法错误: {e}')
+    print('  ERROR: ' + str(e))
     sys.exit(1)
 "
           done
 
-      - name: 运行主逻辑入口（dry-run 模式）
+      - name: Dry run main logic
         env:
-          # 从 GitHub Secrets 读取，不硬编码任何 Key
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DRY_RUN: "true"   # 你可以在主逻辑里判断这个环境变量来跳过真实调用
+          DRY_RUN: "true"
         run: |
-          echo "=== 启动 OpenClaw 主逻辑（dry-run）==="
-          python main.py --dry-run || python app.py --dry-run || echo "⚠️  未找到标准入口，跳过运行测试"
+          python main.py --dry-run || python app.py --dry-run || echo "No standard entry point found, skipping"
 
-      - name: Skills 数量统计（便于 Review）
+      - name: Count skills
         if: always()
         run: |
-          echo "=== Skills 统计 ==="
           total=$(find skills/ -name "*.py" | wc -l)
-          echo "当前 Skills 文件总数: $total"
+          echo "Total skills: $total"
           find skills/ -name "*.py" | sort
