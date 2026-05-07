@@ -1,4 +1,0 @@
-requests
-anthropic
-google-generativeai
-openai
