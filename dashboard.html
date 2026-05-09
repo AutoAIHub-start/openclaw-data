@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoInsight — 수입차 미러 대시보드</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06080b;--bg2:#0d1117;--bg3:#161b22;
+  --border:#21262d;--border2:#30363d;
+  --text:#e6edf3;--muted:#7d8590;
+  --accent:#58a6ff;--green:#3fb950;--yellow:#d29922;--red:#f85149;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(ellipse at 20% 0%,rgba(88,166,255,.04) 0%,transparent 60%)}
+header{border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;
+  justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;
+  background:rgba(6,8,11,.95);backdrop-filter:blur(10px)}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--accent)}
+.logo em{color:var(--text);font-style:normal}
+#clock{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hdr-r{display:flex;align-items:center;gap:12px}
+
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.sc{background:var(--bg);padding:16px 22px;cursor:pointer;transition:background .2s}
+.sc:hover{background:var(--bg2)}
+.sc-label{font-size:10px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
+.sc-val{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:600}
+.sc-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+.main{padding:22px 28px 48px;max-width:1400px;margin:0 auto}
+.sec{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:3px;color:var(--muted);
+  margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sec::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.pills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.pill{padding:5px 14px;border-radius:20px;border:1px solid var(--border2);background:transparent;
+  color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;
+  font-family:'Noto Sans KR',sans-serif}
+.pill:hover,.pill.on{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:700}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:18px;
+  animation:fadeUp .35s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.ct{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.badge{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;
+  font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace}
+.cw{position:relative;height:240px}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:7px 10px;text-align:left;color:var(--muted);font-size:10px;font-weight:500;
+  letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+th.r{text-align:right}
+td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+td.r{text-align:right}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500}
+.tg{background:rgba(63,185,80,.1);color:var(--green);border:1px solid rgba(63,185,80,.2)}
+.ty{background:rgba(210,153,34,.1);color:var(--yellow);border:1px solid rgba(210,153,34,.2)}
+.tr{background:rgba(248,81,73,.1);color:var(--red);border:1px solid rgba(248,81,73,.2)}
+
+.rank-list{list-style:none}
+.rank-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.rank-item:last-child{border-bottom:none}
+.rn{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--border2);width:18px;text-align:center;flex-shrink:0}
+.ri{flex:1;min-width:0}
+.rname{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rbar{margin-top:4px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.rbar-fill{height:100%;border-radius:2px;transition:width .8s ease}
+.rval{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap}
+
+@media(max-width:860px){.summary{grid-template-columns:repeat(2,1fr)}.g2,.g3{grid-template-columns:1fr}.main{padding:14px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Auto<em>Insight</em></div>
+  <div class="hdr-r">
+    <div class="dot"></div>
+    <div id="clock"></div>
+  </div>
+</header>
+
+<div class="summary" id="sumBar"></div>
+
+<div class="main">
+  <div class="pills" id="pills"></div>
+  <div class="sec">공급-수요 차트</div>
+  <div class="g2">
+    <div class="card"><div class="ct">총 상품수 <span class="badge">브랜드 × 부품</span></div><div class="cw"><canvas id="barC"></canvas></div></div>
+    <div class="card"><div class="ct">평균 단가 비교 <span class="badge">원</span></div><div class="cw"><canvas id="priceC"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">상품수 순위 <span class="badge">수요 높은 순</span></div>
+      <ul class="rank-list" id="rankList"></ul>
+    </div>
+    <div class="card">
+      <div class="ct">가격 스펙트럼 <span class="badge" id="specLabel">전체</span></div>
+      <div id="specBars" style="display:flex;flex-direction:column;gap:10px;overflow-y:auto;max-height:280px"></div>
+    </div>
+  </div>
+  <div class="sec">전체 데이터</div>
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th>브랜드</th><th>부품</th>
+        <th class="r">총 상품수</th>
+        <th style="text-align:center">수요</th>
+        <th class="r">평균가</th><th class="r">최저가</th><th class="r">최고가</th>
+        <th class="r">비중</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DATA = [
+  {brand:"벤츠",  part:"백미러",    total:12098, avg:73526,  min:15880, max:370000},
+  {brand:"벤츠",  part:"사이드미러", total:25281, avg:121750, min:80000, max:230000},
+  {brand:"BMW",   part:"백미러",    total:65149, avg:97194,  min:27200, max:370000},
+  {brand:"BMW",   part:"사이드미러", total:53930, avg:116131, min:47000, max:370000},
+  {brand:"아우디", part:"백미러",    total:9026,  avg:100035, min:22000, max:480000},
+  {brand:"아우디", part:"사이드미러", total:19870, avg:85866,  min:19990, max:143000},
+  {brand:"폭스바겐",part:"백미러",   total:7159,  avg:46186,  min:15930, max:117200},
+  {brand:"폭스바겐",part:"사이드미러",total:17197, avg:85110,  min:20000, max:150000},
+  {brand:"혼다",  part:"백미러",    total:39232, avg:11456,  min:640,   max:37900},
+  {brand:"혼다",  part:"사이드미러", total:39264, avg:26357,  min:8200,  max:117600},
+  {brand:"렉서스", part:"백미러",    total:10102, avg:53723,  min:15930, max:289280},
+  {brand:"렉서스", part:"사이드미러", total:8370,  avg:53819,  min:11410, max:165000},
+  {brand:"토요타", part:"백미러",    total:14700, avg:50450,  min:9600,  max:128230},
+  {brand:"토요타", part:"사이드미러", total:22562, avg:95941,  min:3080,  max:342580},
+];
+
+const BRANDS = [...new Set(DATA.map(d=>d.brand))];
+const BC = {벤츠:"#58a6ff",BMW:"#3fb950",아우디:"#ffa657",폭스바겐:"#bc8cff",혼다:"#f85149",렉서스:"#d29922",토요타:"#79c0ff"};
+let active = "전체";
+const fmt  = n => n.toLocaleString()+'원';
+const fmtK = n => n>=10000?Math.round(n/10000)+'만':n.toLocaleString();
+
+// clock
+setInterval(()=>{
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('ko-KR',{hour12:false})+' | 2026-05-09';
+},1000);
+
+// summary
+function buildSummary(){
+  const bar = document.getElementById('sumBar');
+  const tot = DATA.reduce((a,b)=>a+b.total,0);
+  const mx  = DATA.reduce((a,b)=>b.total>a.total?b:a);
+  const act = DATA.filter(d=>d.total>=5000).length;
+  [
+    {l:'총 수집 상품',v:tot.toLocaleString(),s:'14개 조합'},
+    {l:'분석 브랜드', v:BRANDS.length+'개',  s:'수입차 7종'},
+    {l:'최대 수요',   v:mx.brand+' '+mx.part,s:mx.total.toLocaleString()+'개'},
+    {l:'활발 항목',   v:act+'개',            s:'전체 '+DATA.length+'개 중'},
+  ].forEach(x=>{
+    const d=document.createElement('div');
+    d.className='sc';
+    d.innerHTML=`<div class="sc-label">${x.l}</div><div class="sc-val">${x.v}</div><div class="sc-sub">${x.s}</div>`;
+    bar.appendChild(d);
+  });
+}
+
+// pills
+function buildPills(){
+  const el=document.getElementById('pills');el.innerHTML='';
+  ['전체',...BRANDS].forEach(b=>{
+    const btn=document.createElement('button');
+    btn.className='pill'+(b===active?' on':'');
+    btn.textContent=b;
+    btn.onclick=()=>{active=b;renderAll();};
+    el.appendChild(btn);
+  });
+}
+
+function filtered(){ return active==='전체'?DATA:DATA.filter(d=>d.brand===active); }
+
+let bC,pC;
+function buildCharts(){
+  const d=filtered();
+  const labels=d.map(x=>x.brand+' '+x.part.replace('사이드미러','미러'));
+  const bg=d.map(x=>BC[x.brand]+'bb');
+  if(bC)bC.destroy();
+  bC=new Chart(document.getElementById('barC'),{type:'bar',
+    data:{labels,datasets:[{label:'총 상품수',data:d.map(x=>x.total),backgroundColor:bg,borderWidth:0,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+'개'}}},
+      scales:{x:{ticks:{color:'#7d8590',font:{size:10},maxRotation:40},grid:{display:false}},
+              y:{ticks:{color:'#7d8590',font:{size:10},callback:v=>(v/1000)+'k'},grid:{color:'rgba(255,255,255,.05)'}}}}});
+  if(pC)pC.destroy();
+  pC=new Chart(document.getElementById('priceC'),{type:'bar',
+    data:{labels,datasets:[
+      {label:'최저가',data:d.map(x=>x.min),backgroundColor:'rgba(63,185,80,.55)',borderWidth:0,borderRadius:2},
+      {label:'평균가',data:d.map(x=>x.avg),backgroundColor:'rgba(88,166,255,.55)',borderWidth:0,borderRadius:2},
+      {label:'최고가',data:d.map(x=>Math.min(x.max,500000)),backgroundColor:'rgba(248,81,73,.45)',borderWidth:0,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#7d8590',font:{size:10},boxWidth:10}}},
+      scales:{x:{ticks:{color:'#7d8590',font:{size:10},maxRotation:40},grid:{display:false}},
+              y:{ticks:{color:'#7d8590',font:{size:10},callback:v=>(v/1000)+'k'},grid:{color:'rgba(255,255,255,.05)'}}}}});
+}
+
+function buildRank(){
+  const d=[...filtered()].sort((a,b)=>b.total-a.total).slice(0,7);
+  const el=document.getElementById('rankList');el.innerHTML='';
+  const mx=d[0]?.total||1;
+  d.forEach((x,i)=>{
+    const li=document.createElement('li');li.className='rank-item';
+    li.innerHTML=`<div class="rn">${i+1}</div>
+      <div class="ri">
+        <div class="rname">${x.brand} ${x.part}</div>
+        <div class="rbar"><div class="rbar-fill" style="width:${Math.round(x.total/mx*100)}%;background:${BC[x.brand]}"></div></div>
+      </div>
+      <div class="rval">${x.total.toLocaleString()}</div>`;
+    el.appendChild(li);
+  });
+}
+
+function buildSpec(){
+  const d=filtered();
+  const el=document.getElementById('specBars');
+  document.getElementById('specLabel').textContent=active;
+  el.innerHTML='';
+  const mx=Math.max(...d.map(x=>Math.min(x.max,500000)));
+  d.forEach(x=>{
+    [['min',x.min,'#3fb950'],['avg',x.avg,'#58a6ff'],['max',Math.min(x.max,500000),'#f85149']].forEach(([k,v,c])=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;font-size:11px';
+      row.innerHTML=`
+        <div style="width:70px;color:#7d8590;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k==='avg'?x.brand+' '+x.part.replace('사이드미러','미러'):''}</div>
+        <div style="flex:1;height:5px;background:#161b22;border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${Math.max(1,Math.round(v/mx*100))}%;background:${c};border-radius:3px"></div>
+        </div>
+        <div style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;color:${c}">${fmtK(v)}원</div>`;
+      el.appendChild(row);
+    });
+  });
+}
+
+function buildTable(){
+  const d=filtered();
+  const tb=document.getElementById('tbody');tb.innerHTML='';
+  const mx=Math.max(...d.map(x=>x.total));
+  d.forEach(x=>{
+    const pct=Math.round(x.total/mx*100);
+    const tag=x.total>=5000?'<span class="tag tg">🟢 활발</span>':
+              x.total>=1000?'<span class="tag ty">🟡 보통</span>':'<span class="tag tr">🔴 적음</span>';
+    const bar=`<div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+      <div style="width:70px;height:4px;background:#21262d;border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${BC[x.brand]};border-radius:2px"></div>
+      </div>
+      <span class="mono" style="font-size:10px;color:#7d8590;width:30px;text-align:right">${pct}%</span></div>`;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><b style="color:${BC[x.brand]}">${x.brand}</b></td>
+      <td style="color:#7d8590">${x.part}</td>
+      <td class="r mono">${x.total.toLocaleString()}</td>
+      <td style="text-align:center">${tag}</td>
+      <td class="r mono" style="color:#58a6ff">${fmt(x.avg)}</td>
+      <td class="r mono" style="color:#3fb950">${fmt(x.min)}</td>
+      <td class="r mono" style="color:#f85149">${fmt(x.max)}</td>
+      <td>${bar}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function renderAll(){ buildPills();buildCharts();buildRank();buildSpec();buildTable(); }
+buildSummary();
+renderAll();
+</script>
+</body>
+</html>
