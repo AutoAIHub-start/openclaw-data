@@ -1,0 +1,109 @@
+name: 오픈클로 일일 리포트
+
+on:
+  schedule:
+    - cron: '0 22 * * *'  # 한국시간 오전 7시 (UTC 22:00 전날)
+  workflow_dispatch:       # 수동 실행 버튼도 유지
+
+jobs:
+  daily-report:
+    name: 일일 판매 리포트 생성 및 발송
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt
+
+      - name: 일일 데이터 수집
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python scripts/naver_trend.py
+
+      - name: 미러 분석
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python scripts/mirror_analysis.py
+
+      - name: 리포트 이메일 발송
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          REPORT_TO: ${{ secrets.GMAIL_USER }}
+        run: |
+          python - <<'EOF'
+          import json
+          import os
+          import smtplib
+          from email.mime.multipart import MIMEMultipart
+          from email.mime.text import MIMEText
+          from datetime import datetime
+
+          # 데이터 읽기
+          try:
+              with open('data/daily_trend.json', 'r', encoding='utf-8') as f:
+                  daily = json.load(f)
+          except Exception as e:
+              daily = {"error": str(e)}
+
+          try:
+              with open('data/mirror_trend.json', 'r', encoding='utf-8') as f:
+                  mirror = json.load(f)
+          except Exception as e:
+              mirror = {"error": str(e)}
+
+          today = datetime.now().strftime('%Y년 %m월 %d일')
+
+          # 이메일 본문
+          html = f"""
+          <html><body style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+          <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+            🚗 오픈클로 자동차 부품 판매 통계 리포트
+          </h2>
+          <p style="color: #7f8c8d;">📅 {today} | 자동 생성 리포트</p>
+
+          <h3 style="color: #2980b9;">📊 일일 트렌드</h3>
+          <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">{json.dumps(daily, ensure_ascii=False, indent=2)}</pre>
+
+          <h3 style="color: #2980b9;">🔍 미러 트렌드 분석</h3>
+          <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">{json.dumps(mirror, ensure_ascii=False, indent=2)}</pre>
+
+          <hr style="border: 1px solid #ecf0f1; margin: 20px 0;">
+          <p style="color: #95a5a6; font-size: 12px;">⚡ GitHub Actions 자동화 | AutoAIHub</p>
+          </body></html>
+          """
+
+          # 이메일 발송
+          gmail_user = os.environ['GMAIL_USER']
+          gmail_pw = os.environ['GMAIL_APP_PASSWORD']
+          to_email = os.environ['REPORT_TO']
+
+          msg = MIMEMultipart('alternative')
+          msg['Subject'] = f'🚗 오픈클로 일일 리포트 - {today}'
+          msg['From'] = gmail_user
+          msg['To'] = to_email
+          msg.attach(MIMEText(html, 'html'))
+
+          with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+              server.login(gmail_user, gmail_pw)
+              server.sendmail(gmail_user, to_email, msg.as_string())
+
+          print(f"✅ 리포트 발송 완료: {today}")
+          EOF
+
+      - name: 변경사항 커밋
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/
+          git diff --staged --quiet || git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M')"
+          git push
+        continue-on-error: true
