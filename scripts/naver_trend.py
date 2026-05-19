@@ -2,7 +2,7 @@
 네이버 데이터랩 쇼핑인사이트 - 자동차 부품 트렌드 분석
 Client ID: h5hD74VF0RyuCf82KXFt
 """
-
+import os
 import requests
 import json
 from datetime import datetime, timedelta
