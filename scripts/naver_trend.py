@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timedelta
 
 CLIENT_ID = "h5hD74VF0RyuCf82KXFt"
-CLIENT_SECRET = "여기에_Client_Secret_입력"  # 발급된 Secret 입력
+CLIENT_SECRET = os.environ.get("NAVER_CLIENT_SECRET", "")
 
 URL = "https://openapi.naver.com/v1/datalab/shopping/categories"
 
