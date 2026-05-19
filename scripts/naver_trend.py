@@ -30,7 +30,8 @@ def get_trend(keywords: list, start_date: str, end_date: str):
         "gender": "",          # f / m / ""
         "ages": []             # ["10","20","30"] 등
     }
-
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
     headers = {
         "X-Naver-Client-Id": CLIENT_ID,
         "X-Naver-Client-Secret": CLIENT_SECRET,
